@@ -13,12 +13,18 @@ public class DefaultVertexQuery extends VertexQueryBase implements VertexQuery {
     @Override
     public Iterable<Vertex> vertices(EnumSet<FetchHint> fetchHints) {
         Iterable<Vertex> vertices = getSourceVertex().getVertices(Direction.BOTH, fetchHints, getParameters().getAuthorizations());
-        return new DefaultGraphQueryIterable<>(getParameters(), vertices, true, true);
+        return SortedIterable.wrapIfNeeded(
+                new DefaultGraphQueryIterable<>(getParameters(), vertices, true, true),
+                getParameters().getSortParameters()
+        );
     }
 
     @Override
     public Iterable<Edge> edges(EnumSet<FetchHint> fetchHints) {
         Iterable<Edge> edges = getSourceVertex().getEdges(Direction.BOTH, fetchHints, getParameters().getAuthorizations());
-        return new DefaultGraphQueryIterable<>(getParameters(), edges, true, true);
+        return SortedIterable.wrapIfNeeded(
+                new DefaultGraphQueryIterable<>(getParameters(), edges, true, true),
+                getParameters().getSortParameters()
+        );
     }
 }

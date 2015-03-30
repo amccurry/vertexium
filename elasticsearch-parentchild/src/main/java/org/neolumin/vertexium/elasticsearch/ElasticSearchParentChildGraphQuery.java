@@ -1,16 +1,16 @@
 package org.neolumin.vertexium.elasticsearch;
 
 import org.elasticsearch.action.search.SearchRequestBuilder;
+import org.elasticsearch.action.search.SearchResponse;
 import org.elasticsearch.client.transport.TransportClient;
 import org.elasticsearch.index.query.*;
-import org.neolumin.vertexium.Authorizations;
-import org.neolumin.vertexium.Graph;
-import org.neolumin.vertexium.PropertyDefinition;
-import org.neolumin.vertexium.VertexiumException;
+import org.elasticsearch.search.SearchHits;
+import org.neolumin.vertexium.*;
 import org.neolumin.vertexium.elasticsearch.score.ScoringStrategy;
 import org.neolumin.vertexium.query.QueryParameters;
 import org.neolumin.vertexium.query.QueryStringQueryParameters;
 import org.neolumin.vertexium.query.SimilarToTextQueryParameters;
+import org.neolumin.vertexium.query.SortedIterable;
 
 import java.util.List;
 import java.util.Map;
@@ -113,6 +113,12 @@ public class ElasticSearchParentChildGraphQuery extends ElasticSearchGraphQueryB
                 .setQuery(queryBuilder)
                 .setFrom((int) getParameters().getSkip())
                 .setSize((int) getParameters().getLimit());
+    }
+
+    @Override
+    protected <T extends Element> Iterable<T> createIterable(SearchResponse response, QueryParameters filterParameters, Iterable<T> elements, boolean evaluateHasContainers, long searchTime, SearchHits hits) {
+        Iterable<T> it = super.createIterable(response, filterParameters, elements, evaluateHasContainers, searchTime, hits);
+        return SortedIterable.wrapIfNeeded(it, getParameters().getSortParameters());
     }
 
     @Override

@@ -7,6 +7,7 @@ import org.elasticsearch.common.unit.DistanceUnit;
 import org.elasticsearch.index.query.*;
 import org.elasticsearch.search.SearchHit;
 import org.elasticsearch.search.SearchHits;
+import org.elasticsearch.search.sort.SortOrder;
 import org.neolumin.vertexium.*;
 import org.neolumin.vertexium.elasticsearch.score.ScoringStrategy;
 import org.neolumin.vertexium.query.*;
@@ -111,7 +112,7 @@ public abstract class ElasticSearchGraphQueryBase extends GraphQueryBase {
         return createIterable(response, filterParameters, edges, evaluateHasContainers, searchTime, hits);
     }
 
-    protected <T extends Element> ElasticSearchGraphQueryIterable<T> createIterable(SearchResponse response, QueryParameters filterParameters, Iterable<T> elements, boolean evaluateHasContainers, long searchTime, SearchHits hits) {
+    protected <T extends Element> Iterable<T> createIterable(SearchResponse response, QueryParameters filterParameters, Iterable<T> elements, boolean evaluateHasContainers, long searchTime, SearchHits hits) {
         return new ElasticSearchGraphQueryIterable<>(response, filterParameters, elements, false, evaluateHasContainers, hits.getTotalHits(), searchTime, hits);
     }
 
@@ -226,12 +227,20 @@ public abstract class ElasticSearchGraphQueryBase extends GraphQueryBase {
 
     protected SearchRequestBuilder getSearchRequestBuilder(List<FilterBuilder> filters, QueryBuilder queryBuilder) {
         AndFilterBuilder filterBuilder = getFilterBuilder(filters);
-        return getClient()
+        SearchRequestBuilder srb = getClient()
                 .prepareSearch(getIndicesToQuery())
                 .setTypes(ElasticSearchSearchIndexBase.ELEMENT_TYPE)
                 .setQuery(QueryBuilders.filteredQuery(queryBuilder, filterBuilder))
                 .setFrom((int) getParameters().getSkip())
                 .setSize((int) getParameters().getLimit());
+        applySortParameters(srb);
+        return srb;
+    }
+
+    protected void applySortParameters(SearchRequestBuilder srb) {
+        for (SortContainer sp : getParameters().getSortParameters()) {
+            srb.addSort(sp.getPropertyName(), sp.getDirection() == SortDirection.ASCENDING ? SortOrder.ASC : SortOrder.DESC);
+        }
     }
 
     protected AndFilterBuilder getFilterBuilder(List<FilterBuilder> filters) {
@@ -247,7 +256,6 @@ public abstract class ElasticSearchGraphQueryBase extends GraphQueryBase {
     }
 
     protected QueryBuilder createQuery(QueryParameters queryParameters, String elementType, List<FilterBuilder> filters) {
-        QueryBuilder query;
         if (queryParameters instanceof QueryStringQueryParameters) {
             String queryString = ((QueryStringQueryParameters) queryParameters).getQueryString();
             if (queryString == null || queryString.equals("*")) {

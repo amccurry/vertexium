@@ -10,6 +10,7 @@ public abstract class QueryParameters {
     private long limit = 100;
     private long skip = 0;
     private final List<QueryBase.HasContainer> hasContainers = new ArrayList<>();
+    private final List<QueryBase.SortContainer> sortParameters = new ArrayList<>();
 
     public QueryParameters(Authorizations authorizations) {
         this.authorizations = authorizations;
@@ -17,6 +18,10 @@ public abstract class QueryParameters {
 
     public void addHasContainer(QueryBase.HasContainer hasContainer) {
         this.hasContainers.add(hasContainer);
+    }
+
+    public void addSortParameter(QueryBase.SortContainer sortParameter) {
+        this.sortParameters.add(sortParameter);
     }
 
     public long getLimit() {
@@ -41,6 +46,10 @@ public abstract class QueryParameters {
 
     public List<QueryBase.HasContainer> getHasContainers() {
         return hasContainers;
+    }
+
+    public List<QueryBase.SortContainer> getSortParameters() {
+        return sortParameters;
     }
 
     public abstract QueryParameters clone();

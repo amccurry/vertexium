@@ -9,6 +9,7 @@ import java.util.*;
 
 public class CompositeGraphQuery implements Query {
     private final List<Query> queries;
+    private List<QueryBase.SortContainer> sortParameters = new ArrayList<>();
 
     public CompositeGraphQuery(Query... queries) {
         this(Arrays.asList(queries));
@@ -26,7 +27,7 @@ public class CompositeGraphQuery implements Query {
     @Override
     public Iterable<Vertex> vertices(final EnumSet<FetchHint> fetchHints) {
         final Set<String> seenIds = new HashSet<>();
-        return new SelectManyIterable<Query, Vertex>(this.queries) {
+        return SortedIterable.wrapIfNeeded(new SelectManyIterable<Query, Vertex>(this.queries) {
             @Override
             public Iterable<Vertex> getIterable(Query query) {
                 return query.vertices(fetchHints);
@@ -40,7 +41,7 @@ public class CompositeGraphQuery implements Query {
                 seenIds.add(vertex.getId());
                 return super.isIncluded(vertex);
             }
-        };
+        }, sortParameters);
     }
 
     @Override
@@ -114,6 +115,15 @@ public class CompositeGraphQuery implements Query {
         for (Query query : queries) {
             query.has(propertyName, predicate, value);
         }
+        return this;
+    }
+
+    @Override
+    public Query sort(String propertyName, SortDirection direction) {
+        for (Query query : queries) {
+            query.sort(propertyName, direction);
+        }
+        sortParameters.add(new QueryBase.SortContainer(propertyName, direction));
         return this;
     }
 

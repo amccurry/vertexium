@@ -2,11 +2,18 @@ package org.neolumin.vertexium.query;
 
 import org.neolumin.vertexium.*;
 import org.neolumin.vertexium.util.FilterIterable;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
+import java.util.Collections;
 import java.util.EnumSet;
+import java.util.List;
 import java.util.Map;
 
+import static org.neolumin.vertexium.util.IterableUtils.toList;
+
 public abstract class QueryBase implements Query, SimilarToGraphQuery {
+    private static final Logger LOGGER = LoggerFactory.getLogger(QueryBase.class);
     private final Graph graph;
     private final Map<String, PropertyDefinition> propertyDefinitions;
     private final QueryParameters parameters;
@@ -97,6 +104,13 @@ public abstract class QueryBase implements Query, SimilarToGraphQuery {
         return propertyDefinitions;
     }
 
+    public static <T extends Element> Iterable<T> sort(Iterable<T> iterable, List<SortContainer> sortParameters) {
+        LOGGER.warn("fetching all items to perform sort");
+        List<T> items = toList(iterable);
+        Collections.sort(items, new SortComparator<T>(sortParameters));
+        return items;
+    }
+
     public static class HasContainer {
         public String key;
         public Object value;
@@ -112,6 +126,60 @@ public abstract class QueryBase implements Query, SimilarToGraphQuery {
 
         public boolean isMatch(Element elem) {
             return this.predicate.evaluate(elem.getProperties(this.key), this.value, this.propertyDefinitions);
+        }
+    }
+
+    public static class SortContainer {
+        private final String propertyName;
+        private final SortDirection direction;
+
+        public SortContainer(String propertyName, SortDirection direction) {
+            this.propertyName = propertyName;
+            this.direction = direction;
+        }
+
+        public String getPropertyName() {
+            return propertyName;
+        }
+
+        public SortDirection getDirection() {
+            return direction;
+        }
+
+        public <T extends Element> int compare(T o1, T o2) {
+            List<Object> o1Values = toList(o1.getPropertyValues(getPropertyName()));
+            List<Object> o2Values = toList(o2.getPropertyValues(getPropertyName()));
+            if (o1Values.size() == 0 && o2Values.size() == 0) {
+                return 0;
+            }
+
+            // put items with no values after items with values
+            if (o1Values.size() == 0 && o2Values.size() > 0) {
+                return 1;
+            }
+            if (o1Values.size() > 0 && o2Values.size() == 0) {
+                return -1;
+            }
+
+            for (Object o1Value : o1Values) {
+                for (Object o2Value : o2Values) {
+                    int r = compareValues(o1Value, o2Value);
+                    if (r != 0) {
+                        return r;
+                    }
+                }
+            }
+            return 0;
+        }
+
+        protected int compareValues(Object o1Value, Object o2Value) {
+            int r = 0;
+            if (o1Value.getClass().isAssignableFrom(o2Value.getClass())
+                    || o2Value.getClass().isAssignableFrom(o1Value.getClass())
+                    && o1Value instanceof Comparable) {
+                r = ((Comparable) o1Value).compareTo(o2Value);
+            }
+            return getDirection() == SortDirection.ASCENDING ? r : -r;
         }
     }
 
@@ -166,6 +234,12 @@ public abstract class QueryBase implements Query, SimilarToGraphQuery {
             throw new VertexiumException("Invalid query parameters, expected " + SimilarToQueryParameters.class.getName() + " found " + parameters.getClass().getName());
         }
         ((SimilarToQueryParameters) this.parameters).setBoost(boost);
+        return this;
+    }
+
+    @Override
+    public Query sort(String propertyName, SortDirection direction) {
+        parameters.addSortParameter(new SortContainer(propertyName, direction));
         return this;
     }
 }

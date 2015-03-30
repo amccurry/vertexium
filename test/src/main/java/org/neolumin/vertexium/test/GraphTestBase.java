@@ -2660,6 +2660,31 @@ public abstract class GraphTestBase {
         assertEquals("v3", vertices.get(2).getId());
     }
 
+    @Test
+    public void testQuerySort() {
+        graph.prepareVertex("v1", VISIBILITY_A)
+                .setProperty("age", 25, VISIBILITY_A)
+                .save(AUTHORIZATIONS_A_AND_B);
+        graph.prepareVertex("v2", VISIBILITY_A)
+                .setProperty("age", 30, VISIBILITY_A)
+                .save(AUTHORIZATIONS_A_AND_B);
+        graph.prepareVertex("v3", VISIBILITY_A)
+                .setProperty("age", 40, VISIBILITY_A)
+                .save(AUTHORIZATIONS_A_AND_B);
+        graph.prepareVertex("v4", VISIBILITY_A)
+                .save(AUTHORIZATIONS_A_AND_B);
+
+        Iterable<Vertex> vertices = graph.query(AUTHORIZATIONS_A)
+                .sort("age", SortDirection.ASCENDING)
+                .vertices();
+        assertVertexIds(vertices, new String[]{"v1", "v2", "v3", "v4"});
+
+        vertices = graph.query(AUTHORIZATIONS_A)
+                .sort("age", SortDirection.DESCENDING)
+                .vertices();
+        assertVertexIds(vertices, new String[]{"v3", "v2", "v1", "v4"});
+    }
+
     private List<Vertex> getVertices(long count) {
         List<Vertex> vertices = new ArrayList<>();
         for (int i = 0; i < count; i++) {

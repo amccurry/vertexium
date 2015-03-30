@@ -19,7 +19,10 @@ public class DefaultMultiVertexQuery extends QueryBase implements MultiVertexQue
     @Override
     public Iterable<Vertex> vertices(EnumSet<FetchHint> fetchHints) {
         Iterable<Vertex> vertices = getGraph().getVertices(toIterable(getVertexIds()), fetchHints, getParameters().getAuthorizations());
-        return new DefaultGraphQueryIterable<>(getParameters(), vertices, true, true);
+        return SortedIterable.wrapIfNeeded(
+                new DefaultGraphQueryIterable<>(getParameters(), vertices, true, true),
+                getParameters().getSortParameters()
+        );
     }
 
     @Override
@@ -27,7 +30,10 @@ public class DefaultMultiVertexQuery extends QueryBase implements MultiVertexQue
         Iterable<Vertex> vertices = getGraph().getVertices(toIterable(getVertexIds()), fetchHints, getParameters().getAuthorizations());
         Iterable<String> edgeIds = new VerticesToEdgeIdsIterable(vertices, getParameters().getAuthorizations());
         Iterable<Edge> edges = getGraph().getEdges(edgeIds, fetchHints, getParameters().getAuthorizations());
-        return new DefaultGraphQueryIterable<>(getParameters(), edges, true, true);
+        return SortedIterable.wrapIfNeeded(
+                new DefaultGraphQueryIterable<>(getParameters(), edges, true, true),
+                getParameters().getSortParameters()
+        );
     }
 
     public String[] getVertexIds() {
